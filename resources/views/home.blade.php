@@ -13,8 +13,8 @@
             </div>
             <div class="d-flex">
                 <div class="pr-5"><strong>200</strong> posts</div>
-                <div class="pr-5"><strong>2K</strong> followers</div>
-                <div class="pr-5"><strong>12</strong> following</div>
+                <div class="pr-5"><strong>2,5K</strong> followers</div>
+                <div class="pr-5"><strong>23</strong> following</div>
             </div>
             <div class="pt-4 font-weight-bold">{{ $user->profile->title }}</div>
             <div>{{ $user->profile->description }}</div>
