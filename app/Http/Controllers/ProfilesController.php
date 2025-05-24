@@ -2,68 +2,55 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Intervention\Image\Facades\Image;
-use Illuminate\Support\Facades\Cache;
 use App\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Intervention\Image\Facades\Image;
 
 class ProfilesController extends Controller
 {
     public function index(User $user)
     {
-        $follows = (auth()->user()) ? auth()->user()->following->contains($user->id) : false ;
+        $follows = auth()->check() && auth()->user()->following->contains($user->id);
 
-        $postCount = Cache::remember('count.post' . $user->id, now()->addSeconds(30),
-            function () use ($user) {
-                return $user->posts->count();
-            });
+        $postCount = Cache::remember("count.posts.{$user->id}", now()->addSeconds(30), fn() => $user->posts()->count());
 
-        $followersCount = Cache::remember('followers.post' . $user->id, now()->addSeconds(30),
-            function () use ($user) {
-                return $user->profile->followers->count();
-            });
+        $followersCount = Cache::remember("count.followers.{$user->id}", now()->addSeconds(30), fn() => $user->profile->followers()->count());
 
-        $followingCount = Cache::remember('count.post' . $user->id, now()->addSeconds(30),
-            function () use ($user) {
-                return $user->following->count();
-            });
+        $followingCount = Cache::remember("count.following.{$user->id}", now()->addSeconds(30), fn() => $user->following()->count());
 
-        return view('profiles.index', \compact('user', 'follows', 'postCount', 'followersCount', 'followingCount'));
+        return view('profiles.index', compact('user', 'follows', 'postCount', 'followersCount', 'followingCount'));
     }
 
     public function edit(User $user)
     {
         $this->authorize('update', $user->profile);
-
         return view('profiles.edit', compact('user'));
     }
 
-    public function update(User $user)
+    public function update(Request $request, User $user)
     {
         $this->authorize('update', $user->profile);
 
-        $data = request()->validate([
+        $data = $request->validate([
             'title' => 'required',
             'description' => 'required',
-            'url' => 'url',
-            'image' => 'image',
+            'url' => 'nullable|url',
+            'image' => 'nullable|image',
         ]);
 
-        if (request('image')) {
-            $imagePath = request('image')->store('profile', 'public');
+        if ($request->hasFile('image')) {
+            $imagePath = $request->file('image')->store('profile', 'public');
 
-            $image = Image::make(\public_path("storage/{$imagePath}"))->fit(1200,1200);
-            $image->save();
+            Image::make(public_path("storage/{$imagePath}"))
+                ->fit(1200, 1200)
+                ->save();
 
-            $imageArr = ['image' => $imagePath];
+            $data['image'] = $imagePath;
         }
 
-        auth()->user()->profile->update(array_merge(
-            $data,
-            $imageArr ?? []
-        ));
+        $user->profile->update($data);
 
-        return \redirect("/profile/{$user->id}");
+        return redirect("/profile/{$user->id}");
     }
 }
-
