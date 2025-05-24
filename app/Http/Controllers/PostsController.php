@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Post;
 use Illuminate\Http\Request;
 use Intervention\Image\Facades\Image;
 
@@ -14,9 +15,14 @@ class PostsController extends Controller
 
     public function index()
     {
-        $users = auth()->user()->following()->pluck('profiles.user_id');
+        $posts = auth()->user()
+            ->following()
+            ->pluck('profiles.user_id');
 
-        $posts = \App\Post::whereIn('user_id', $users)->with('user')->latest()->paginate(5);
+        $posts = Post::whereIn('user_id', $posts)
+            ->with('user')
+            ->latest()
+            ->paginate(5);
 
         return view('posts.index', compact('posts'));
     }
@@ -26,28 +32,29 @@ class PostsController extends Controller
         return view('posts.create');
     }
 
-    public function store()
+    public function store(Request $request)
     {
-        $data = request()->validate([
+        $data = $request->validate([
             'caption' => 'required',
-            'image' => ['required', 'image']
+            'image' => ['required', 'image'],
         ]);
 
-        $imagePath = request('image')->store('uploads', 'public');
+        $imagePath = $request->file('image')->store('uploads', 'public');
 
-        $image = Image::make(\public_path("storage/{$imagePath}"))->fit(1200,1200);
-        $image->save();
+        Image::make(public_path("storage/{$imagePath}"))
+            ->fit(1200, 1200)
+            ->save();
 
-        auth()->user()->posts()->create([
+        $request->user()->posts()->create([
             'caption' => $data['caption'],
-            'image' => $imagePath
+            'image' => $imagePath,
         ]);
 
-        return \redirect('/profile/' . \auth()->user()->id);
+        return redirect('/profile/' . $request->user()->id);
     }
 
-    public function show(\App\Post $post)
+    public function show(Post $post)
     {
-        return view('posts.show', \compact('post'));
+        return view('posts.show', compact('post'));
     }
 }
