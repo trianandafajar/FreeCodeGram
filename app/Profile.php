@@ -7,21 +7,31 @@ use Illuminate\Database\Eloquent\Model;
 class Profile extends Model
 {
     protected $guarded = [];
-    
+
+    /**
+     * Get the full URL for the profile image.
+     *
+     * @return string
+     */
     public function profileImage()
     {
-        $ImagePath = ($this->user->profile->image ? $this->user->profile->image : 'profile/rTUv9fiC8kFd8CX8MAeUx12HLnNK1hzCAIVscybb.png' );
-
-        return '/storage/' . $ImagePath;
+        $imagePath = $this->image ?? 'profile/default.png';
+        return asset('storage/' . $imagePath);
     }
 
+    /**
+     * Get the user that owns the profile.
+     */
     public function user()
     {
-        return $this->belongsTo('App\User');
+        return $this->belongsTo(User::class);
     }
 
+    /**
+     * The users that follow this profile.
+     */
     public function followers()
     {
-        return $this->belongsToMany('App\User');
+        return $this->belongsToMany(User::class);
     }
 }
